@@ -28,6 +28,11 @@ const publishPurchases = () => {
   if (purchases < config.SIMULATION_ROUNDS) {
     setTimeout(() => {
       purchases++;
+
+      if (purchases % 1000 === 0) {
+        console.log(`Handled: ${purchases} purchases`);
+      }
+
       publishJson('purchase', generatePurchase());
       publishPurchases();
     }, 5);

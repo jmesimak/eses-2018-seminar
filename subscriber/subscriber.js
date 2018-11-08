@@ -59,6 +59,7 @@ class Subscriber {
           handledPurchases++;
           if (handledPurchases === config.SIMULATION_ROUNDS) {
             console.timeEnd(this.name);
+            console.log(`Done handling ${handledPurchases} purchases`);
             console.log(`${this.name} finished in UNIX time: ${new Date().getTime()}`);
           }
         });
