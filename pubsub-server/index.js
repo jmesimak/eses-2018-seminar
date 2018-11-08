@@ -27,6 +27,9 @@ app.post('/subscription', (req, res) => {
     console.log(`Subscription already exists for ${subscription.subscriber}`);
     res.json({ message: 'Subscriber already exists' });
   }
+
+  console.log('subscriptions now:');
+  console.log(subscriptions);
 });
 
 app.post('/message', async (req, res) => {
