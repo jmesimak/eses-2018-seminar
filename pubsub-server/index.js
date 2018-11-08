@@ -33,25 +33,37 @@ app.post('/subscription', (req, res) => {
 });
 
 app.post('/message', async (req, res) => {
-  const envelope = req.body;
-  const topic = envelope.topic;
-  const message = envelope.message;
+  const { topic, message } = req.body;
 
   if (!messages[topic]) messages[topic] = [];
   const wrappedMessage = { ...message, id: uuid.v4(), subscribers: subscriptions[topic] || [] };
   messages[topic].push(wrappedMessage);
   res.json({ message: 'ok' })
 
-  for (const subscriber of wrappedMessage.subscribers) {
+  wrappedMessage.subscribers.forEach(subscriber => {
     try {
-      await axios.post(subscriber.address, message);
+      axios.post(subscriber.address, message);
       wrappedMessage.subscribers = wrappedMessage.subscribers
         .filter(({ name }) => name !== subscriber.name)
-    } catch (e) {}
-  }
+    } catch (e) {
+      console.log('Something went terribly wrong in posting messages');
+      console.log(e);
+    }
+  });
+
+  // for (const subscriber of wrappedMessage.subscribers) {
+  //   try {
+  //     await axios.post(subscriber.address, message);
+  //     wrappedMessage.subscribers = wrappedMessage.subscribers
+  //       .filter(({ name }) => name !== subscriber.name)
+  //   } catch (e) {
+  //     console.log('Something went terribly wrong in posting messages');
+  //     console.log(e);
+  //   }
+  // }
 
   if (wrappedMessage.subscribers.length === 0) {
-    messages[topic] = messages[topic].filter(message => message !== wrappedMessage);
+    messages[topic] = messages[topic].filter(message => message.id !== wrappedMessage.id);
   }
 });
 
