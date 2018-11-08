@@ -1,4 +1,4 @@
-const { Subscriber } = require('./billing-service/subscriber');
+const { Subscriber } = require('./subscriber/subscriber');
 
 const name = process.argv[2];
 const topic = process.argv[3];
