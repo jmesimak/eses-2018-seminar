@@ -35,7 +35,7 @@ class Subscriber {
       return axios.post(config.SUBSCRIBE_ADDRESS, {
         topic: this.topic,
         subscriber: this.name,
-        subscriberAddress: `http://localhost:${this.port}/message`,
+        subscriberAddress: `http://${config.HOST}:${this.port}/message`,
       });
     }
     
