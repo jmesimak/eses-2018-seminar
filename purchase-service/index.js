@@ -6,7 +6,7 @@ let publishingStarted = false;
 
 const publishJson = (channel, msg) => {
   return new Promise(async (resolve) => {
-    await axios.post('http://localhost:3000/message', {
+    await axios.post(`http://${config.REMOTE_HOST}:3000/message`, {
       topic: channel,
       message: msg,
     });
