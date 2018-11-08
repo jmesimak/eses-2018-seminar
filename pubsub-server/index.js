@@ -32,48 +32,66 @@ app.post('/subscription', (req, res) => {
   console.log(subscriptions);
 });
 
+const handleMessage = async (message, topic) => {
+  const allSubscriberCount = message.subscribers.length;
+  const deliveries = message.subscribers.map(async subscriber => {
+    try {
+      await axios.post(subscriber.address, message.content);
+      message.subscribers = message.subscribers
+        .filter(({ name }) => name !== subscriber.name);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const successfulDeliveries = (await Promise.all(deliveries)).filter(delivery => delivery);
+
+  if (successfulDeliveries.length !== allSubscriberCount) {
+    messages[topic].push(message);
+  }
+}
+
 app.post('/message', async (req, res) => {
   const { topic, message } = req.body;
 
   if (!messages[topic]) messages[topic] = [];
-  const wrappedMessage = { ...message, id: uuid.v4(), subscribers: subscriptions[topic] || [] };
-  messages[topic].push(wrappedMessage);
-  res.json({ message: 'ok' })
+  const wrappedMessage = { content: message, id: uuid.v4(), subscribers: subscriptions[topic] || [] };
 
-  wrappedMessage.subscribers.forEach(subscriber => {
-    try {
-      axios.post(subscriber.address, message);
-      wrappedMessage.subscribers = wrappedMessage.subscribers
-        .filter(({ name }) => name !== subscriber.name)
-    } catch (e) {
-      console.log('Something went terribly wrong in posting messages');
-      console.log(e);
-    }
-  });
-
-  // for (const subscriber of wrappedMessage.subscribers) {
-  //   try {
-  //     await axios.post(subscriber.address, message);
-  //     wrappedMessage.subscribers = wrappedMessage.subscribers
-  //       .filter(({ name }) => name !== subscriber.name)
-  //   } catch (e) {
-  //     console.log('Something went terribly wrong in posting messages');
-  //     console.log(e);
-  //   }
-  // }
-
-  if (wrappedMessage.subscribers.length === 0) {
-    messages[topic] = messages[topic].filter(message => message.id !== wrappedMessage.id);
-  }
+  handleMessage(wrappedMessage, topic);
+  return res.json({ message: 'ok' })
 });
+
+const sendMessages = () => {
+  const messagesLeft = Object.keys(messages).reduce((count, topic) => {
+    return count + messages[topic].length;
+  }, 0);
+
+  if (messagesLeft) {
+    Object.keys(messages).forEach(topic => {
+      const message = messages[topic].pop();
+      if (message) {
+        handleMessage(message, topic);
+      }
+    });
+  }
+
+  setTimeout(() => {
+    sendMessages();
+  }, 10);
+}
 
 const printMessages = () => {
   setTimeout(() => {
-    console.log(messages);
+    const messagesLeft = Object.keys(messages).reduce((count, topic) => {
+      return count + messages[topic].length;
+    }, 0);
+    console.log(`Message count: ${messagesLeft}`);
     printMessages();
-  }, 500);
+  }, 1000*5);
 };
 
 // printMessages();
+sendMessages();
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
