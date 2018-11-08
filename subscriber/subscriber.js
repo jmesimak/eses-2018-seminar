@@ -32,11 +32,13 @@ class Subscriber {
     let timerRunning = false;
     
     const subscribe = async () => {
-      return axios.post(config.SUBSCRIBE_ADDRESS, {
+      const response = await axios.post(config.SUBSCRIBE_ADDRESS, {
         topic: this.topic,
         subscriber: this.name,
         subscriberAddress: `http://${config.HOST}:${this.port}/message`,
       });
+      console.log(response.data);
+      return response;
     }
     
     subscribe()

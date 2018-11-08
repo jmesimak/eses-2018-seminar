@@ -10,17 +10,23 @@ const subscriptions = {};
 const messages = {};
 
 app.post('/subscription', (req, res) => {
-  console.log('Received subscription!');
   const subscription = req.body;
-  console.log(subscription)
+  console.log(`Subscription request from ${subscription.subscriber}`);
   if (!subscriptions[subscription.topic]) {
     subscriptions[subscription.topic] = [];
   }
-  subscriptions[subscription.topic].push({
-    name: subscription.subscriber,
-    address: subscription.subscriberAddress,
-  });
-  res.json({ message: 'Subscription received' });
+
+  if (!subscriptions[subscription.topic].find(({ name }) => name === subscription.subscriber)) {
+    subscriptions[subscription.topic].push({
+      name: subscription.subscriber,
+      address: subscription.subscriberAddress,
+    });
+    console.log(`Added subscriber for ${subscription.subscriber}`);
+    res.json({ message: 'Subscription received' });
+  } else {
+    console.log(`Subscription already exists for ${subscription.subscriber}`);
+    res.json({ message: 'Subscriber already exists' });
+  }
 });
 
 app.post('/message', async (req, res) => {
