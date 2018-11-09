@@ -115,7 +115,7 @@ Subscribing services were implemented so that they simulate processing of the me
 
 Message queue implementation allows the subscriber to fetch messages from the event system and specify how many messages they wish to fetch at the same time. After a message has been fetched it is removed from the event system. Reference to all message subscribers were stored in purchase service as required by our definition of message queue.
 
-Each service, and the event system were running on their own virtual servers. A virtual server consisted of one vcore and 1GiB of RAM, running Ubuntu Server 18.04 operating system REFERENCE TO T2.MICRO SPECS. Our implementation of the whole distributed system was written in Node.js 11.1.0. Clients of the event system are not constrained to Node.js and any language capable of implementing the HTTP protocol can be used to create a subscriber or a publisher for both publish-subscribe messaging system and message queue.
+Each service, and the event system were running on their own virtual servers. A virtual server consisted of one virtual core and 1 GiB of RAM, running Ubuntu Server 18.04 operating system REFERENCE TO T2.MICRO SPECS. Our implementation of the whole distributed system was written in Node.js 11.1.0. Clients of the event system are not constrained to Node.js and any language capable of implementing the HTTP protocol can be used to create a subscriber or a publisher for both publish-subscribe messaging system and message queue.
 
 We tested the systems by introducing two simulated traffic workloads in two different manners:
 \begin{itemize}
@@ -145,7 +145,7 @@ Continuous streaming in an environment where all the publishers and subscribers 
 
 In our first benchmark we can see that when we make no assumptions on the performance of the subscribers, publish-subscribe tends to work quite fast if subscribers can keep up with the workload, whereas message queue delivers slower message handling when there is no logic increasing the amount of messages fetched, even if it could handle more traffic.
 
-The same observations hold for larger amount of data but note that the ratio does not change.
+The same observations hold for larger amount of data, which leads to the conclusion that while continuously streaming in a rather simple distributed system, publish-subscribe fares better.
 
 \begin{figure}
     \centering
@@ -161,6 +161,24 @@ The same observations hold for larger amount of data but note that the ratio doe
 
 
 \subsubsection{Failure recovery}
+Services going offline can happen for a multitude of reasons, such as taking it down for a version update, network outage, power outage, etc. Therefor we felt it necessary to include a benchmark for failure recovery which is something that each system is eventually bound to run into. From the following results we can again identify how each of the two systems work under normally occurring conditions, and better compare the two through our observations.
+
+As the figure shows, message queue subscribers are able to catch up somewhat faster when there are multiple messages pending to be processed, since publish-subscribe messaging system is constrained due to not knowing how much traffic the subscribers could handle. There are possible implementations of publish subscribe that would allow adjusting of the publishing rate, but those fall outside the scope of comparing the approaches on this paper's purpose in delivering a general comparison.
+
+With larger message set the difference becomes even more pronounced in terms of seconds but the ratio stays roughly the same. For failure recovery scenarios it seems that message queues would fare better especially when no assumptions on the workings of the rest of the system can be made.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.30]{ColdBoot24k.png}
+    \caption{24000 messages with 5 millisecond interval, Y-axis is in seconds.}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.30]{ColdBoot96k.png}
+    \caption{96000 messages with 5 millisecond interval, Y-axis is in seconds.}
+\end{figure}
+
 \section{Discussion}
 
 \section{Conclusions}
