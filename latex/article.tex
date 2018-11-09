@@ -1,0 +1,169 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{blindtext}
+\usepackage{textcomp}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{stfloats}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Comparison of delivering limited fault tolerance via publish-subscribe messaging and message queuing in asynchronous distributed systems}
+
+\author{\IEEEauthorblockN{Jerry Mesimaki}
+\IEEEauthorblockA{\textit{University of Helsinki Department of Computer Science}\\
+Helsinki, Finland}
+}
+
+\maketitle
+
+\begin{abstract}
+The purpose of this paper is to observe and compare two commonly used approaches - the publish-subscribe messaging and the message queue - for building an asynchronous distributed system. We will survey their key differences, similarities, and also provide a performance comparison in a real world scenario where the use of both approaches is viable. Our belief is that such a comparison is highly valuable when both technologies are being considered as the backbone of a large business operation. Previous research of the subjects is centered around comparing different implementations of either one but information on simultaneous review of both is lacking in the academic space.
+\end{abstract}
+
+\section{Introduction}
+Organizations wishing to scale their systems to support hundreds of millions of users, while making sure that one part of the system failing does not take down the whole business, are oftentimes leaning towards limitedly fault tolerant asynchronous distributed systems. There are multiple ways of achieving the goal and they usually require a way of distributing messages across the network of distributed systems (citation could be nice). Therefor it's critical to choose the best approach for implementing this communication. Thorough comparisons of existing solutions can steer the decision maker from picking an approach that would not suit the requirements of the business in the long run.
+
+\indent Publish-subscribe messaging and message queue were chosen due to their popularity in the space of modern asynchronous distributed systems. This paper shows that both indeed have been battle tested to be worthy contenders while we also compare them in real world situations and pit them against each other in concrete benchmarks. To support our arguments we reflect our findings with experiences stemming from implementing a publish-subscribe messaging as the core of an advertisement network serving advertisements to over a billion unique devices a month, and responding to over 50.000 advertisement requests a second.
+
+\indent Previous comparisons live mainly on blogs of different companies that claim to have tried both approaches and very little well known formal research is available.
+
+\section{Methods}
+
+\subsection{Asynchronous distributed system}
+In this paper we describe an asynchronous distributed system as a set of interrelated services that each consist from one or more nodes. The services do not communicate directly with each other but use either the publish-subscribe messaging or message queue as an intermediary for communication (Figure 1). Synchronous request-response between services is not considered possible as later on described by the limited fault tolerance. The services however require data from each other to function properly so an intermediary and communication path is required.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.6]{distsys.png}
+    \caption{General distributed system composition with one communication intermediary.}
+\end{figure}
+
+\subsection{Limited fault tolerance}
+Fault tolerance is a complex concept and an essential aspect of a distributed system. Truly fault tolerant systems can handle even Byzantine faults and still keep operating normally \cite{pracbyzfaultol}. Such wide spanning fault tolerance however is not always desired since covering more faults requires more resources, and therefor might affect performance and the complexity of the system. Limited fault tolerance can be an appealing choice for multiple use cases if the system is able to mitigate some causes of fault elsewhere (e.g. malicious actors are prevented from modifying the system by good security practices) or the system creator decides to sacrifice robustness for performance. In this paper we compare the two systems given just two requirements for fault tolerance to make the comparison better resemble use cases found in the industry.
+
+
+\begin{itemize}
+    \item Service going offline should not immediately cause issues to other services.
+    \item Service should be able to recover by catching up after going offline.
+\end{itemize}
+
+\subsection{Publish-subscribe messaging system}
+There are numerous articles introducing different variants of publish-subscribe messaging systems and many commercial offerings from Java-specific systems to more general solutions. This paper intends to look at publish-subscribe messaging on a more general level and therefor we use a model described in REF which requires the system to offer three dimensions of decoupling:
+
+
+\begin{itemize}
+    \item Space decoupling: Publishers and subscribers do not have to know each other.
+    \item Time decoupling: Subscriber can be offline at the time of publishing, publisher can be offline when subscriber receives the message.
+    \item Synchronization decoupling: Publishers can broadcast a message and forget about it, subscribers are able to receive messages and handle them on their own pace.
+\end{itemize}
+With these definitions we can express the publish-subscribe messaging system with the diagram presented in Figure 2.
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.45]{PubSubTheo.png}
+    \caption{Publish-subscribe messaging system.}
+\end{figure}
+
+
+\subsection{Message queue}
+Message queues, like publish-subscribe messaging systems have been implemented in multitudes of ways. For the comparison in this paper we use the point to point model described in \textit{Performance Evaluation and Comparison of Distributed Messaging Using Message Oriented Middleware}. We also assume the message queue to be implemented in a manner that allows the same three dimensions of decoupling as which were previously introduced in the publish-subscribe messaging system, with the limitation that subscriber does not necessarily have to know the message sender but the broadcasting service must know who to send the messages to.
+
+With these definitions we can express the message queue with the diagram presented in Figure 3.
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.45]{MQTheo.png}
+    \caption{Message queue}
+\end{figure}
+
+
+
+\subsection{Operational key differences and similarities}
+In both systems there are services broadcasting messages to the EVENT SYSTEM (describe that even system is either pubsub or mq somewhere). It can also be assumed that both systems allow the broadcaster to forget about the messages when event systems sends a confirmation that it has received the message. Key difference regarding message broadcasters is that in publish-subscribe messaging system broadcaster does not have to know anything else than the topic it is broadcasting to, but in message queue system broadcaster must have a reference to every service it intends to send the message.
+
+The event system differences are the following: In publish-subscribe each service listening on a topic has to confirm that it has read and handled the message until the message can be deleted from the event system. Any node in a service can send the acknowledgement. Message queue on the other hand has a single service recipient for the message. It can also be acknowledged by any of the service’s nodes, and after acknowledgement the message is then deleted from the event system.
+
+Subscribers differ in the regard that publish-subscribe messaging system will keep sending the messages until each topic subscriber has acknowledged it, whereas message queue relies on the subscriber to pull messages belonging to it from the event system.
+
+A major similarity of both systems is that services themselves do not need to care whether their messages have reached their destination, and as subscribers they can always rely on eventually getting the messages that belong to them.
+
+\subsection{Testing framework}
+This paper evaluates both systems in a framework consisting of two perspectives. We believe that these perspectives cover the business requirements for most use cases so that a solid technological decision can be based upon the results.
+
+The first perspective argues what kind of advantages each ones' feature set provides over the other through a qualitative analysis. We will observe some typical use cases where an event system can be considered as an useful communication intermediary, and then provide arguments for each systems' viability to serve as the intermediary.
+
+Our second perspective will offer insight into the performance differences in two simulated scenarios. We construct the simulation by introducing an imaginary large scale online store system that handles purchases coming from browsers. Purchases are processed by the purchase service that will afterwards inform three subscriber services: billing service, tax service, and shipping service, of the contents of the purchase. The information is shared from purchase service to the three subscriber services via either publish-subscribe messaging system or message queue serving as the event system.
+
+The first scenario is one where purchase service receives a steady stream of purchases to handle and we observe how the whole system performs when this stream grows larger by introducing more purchases to the system.
+
+In the second simulated scenario we assume that all three listening services have failed and a large amount of messages is pending in the event system. Again we test the performance with different amounts of pending messages and observe how the two systems compare against each other in handling of the messages.
+
+\subsection{Test setup}
+We wrote reference implementations of both publish-subscribe messaging system and a message queue, the resulting code is open source and can be found from REF. Our implementations offer the previously described limited fault tolerance and both follow the requirements listed in subsections HERE and THERE. Instructions for running the implementations are supplied with the code.
+
+Purchase service and the three subscribers were also implemented so that performance benchmarks could be made. Purchase service communicates with the event system through a simple publishing interface that was made using HTTP which satisfies the condition that publisher can forget about the message if it is acknowledged by the event system REFERENCE TO HTTP RFC.
+
+Subscribing services were implemented so that they simulate processing of the messages by spending an arbitrary amount of time on each one. In publish-subscribe messaging system the subscribers inform that they are interested in the topic of \textit{purchase} by a HTTP call to the event system, and then start receiving messages via their own HTTP interface from the event system. HTTP was again chosen since it allows the services to verify that their subscription was received and the event system to verify the published message was correctly handled by subscribers. This is required to satisfy the fact that subscribers receive each message only once in a limited fault tolerant environment.
+
+Message queue implementation allows the subscriber to fetch messages from the event system and specify how many messages they wish to fetch at the same time. After a message has been fetched it is removed from the event system. Reference to all message subscribers were stored in purchase service as required by our definition of message queue.
+
+Each service, and the event system were running on their own virtual servers. A virtual server consisted of one vcore and 1GiB of RAM, running Ubuntu Server 18.04 operating system REFERENCE TO T2.MICRO SPECS. Our implementation of the whole distributed system was written in Node.js 11.1.0. Clients of the event system are not constrained to Node.js and any language capable of implementing the HTTP protocol can be used to create a subscriber or a publisher for both publish-subscribe messaging system and message queue.
+
+We tested the systems by introducing two simulated traffic workloads in two different manners:
+\begin{itemize}
+    \item Continuous streaming where all three subscribers are ready to receive messages when the purchase service starts publishing. First workload was 24000 messages with an interval of 5 millisecond between each message. Second workload was 96000 messages with the same interval. Publish-subscribe messaging system kept publishing the messages as they came, and in message queue testing, the subscribers requested 100 messages at a time, handled them, and then repeated the request.
+    \item Failure simulation where all three subscribers were offline until all messages had been acknowledged by the event system. Same two different workloads were used and message queue subscriber worked as in the previous case. Publish-subscribe approach however was different in the regard that it kept a 10 millisecond interval between each publish event.
+\end{itemize}
+
+\section{Results}
+\subsection{First perspective: qualitative analysis}
+\subsubsection{Publish-subscribe messaging system}
+The core advantage of publish-subscribe messaging system comes from the three dimensions of decoupling. They occur stronger than in message queues, which makes publish-subscribe better suited for loosely coupled systems. Main selling point of the loose coupling is that new services can be added to listen on pre-existing topics, and this does not require any changes in the rest of the system. We have also found this to be extremely beneficial in our advertisement network, where we can trial and launch new features without risking bugs in current production software. 
+
+Publish-subscribe approach also allows to control the flow of outgoing messages so that an increase in subscribers does not necessarily overload the event system. In the distributed system model we proposed, worst outcome would be for the communication intermediary to stop working since that would prevent all subscribers from receiving messages.
+
+Last advantage of publish-subscribe is that if multiple services are subscribed to the same message, we must only store the message content once, whereas message queue requires either duplication of the message, or increased complexity and computational requirements to store only one copy. When the amount of subscribers wishing to read similar messages grows large, message queue would run out of memory faster, thus leading to increased operational costs or higher latencies.
+
+\subsubsection{Message queue}
+Slightly tighter coupling between publishers and subscribers in message queue approach allows for some functionality that might be desired in some systems. The most obvious is how messages flow from the event system to the subscriber. When subscribers can pull the messages, they control how much they must process at once, and can therefor optimize the rate to something that their underlying hardware can handle optimally.
+
+Another feature supported only by the message queue is verifying that only permitted listeners are allowed to fetch certain messages from the event system. This can be implemented with cryptographic keys shared between publisher and subscriber since there is a stronger coupling, or by negotiating such complex subscriber names that they can not be guessed by an adversary.
+
+Message queue also makes subscriber services more robust since they do not need to expose themselves in the network. This prevents adversaries from attempting to flood the service with bogus requests, and somewhat reduces the complexity of the software. These advantages leave the developers more time to focus on the actual features of the service.
+
+\subsection{Second perspective: performance analysis}
+
+\section{Discussion}
+
+\section{Conclusions}
+
+\bibliography{references}{}
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+\bibitem{pracbyzfaultol} 
+Miguel Castro and Barbara Liskov
+\textit{Practical Byzantine Fault Tolerance}. 
+Appears in the Proceedings of the Third Symposium on Operating Systems Design and Implementation, New Orleans, USA, February 1999.
+
+\bibitem{manyfaces}
+Eugster, Patrick Th, Pascal A. Felber, Rachid Guerraoui, and Anne-Marie Kermarrec
+\textit{The Many Faces of Publish/Subscribe}
+ACM Computing Surveys, Vol. 35, No. 2, June 2003, pp. 114–131.
+ 
+\bibitem{mqperf}
+Naveen Mupparaju
+\textit{Performance Evaluation and Comparison of Distributed Messaging Using Message Oriented Middleware}
+(2013). UNF Theses and Dissertations. 456.
+http://digitalcommons.unf.edu/etd/456
+ 
+\end{thebibliography}
+
+\end{document}
