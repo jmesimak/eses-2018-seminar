@@ -41,11 +41,13 @@ class Subscriber {
     while (this.messagesHandled < config.SIMULATION_ROUNDS) {
       const response = await this.fetchMessage();
       if (response && !messageHandlingStarted) {
+        console.log(`${this.name} started processing messages`);
         messageHandlingStarted = true;
         console.time(this.name);
       }
     }
     console.log(`Done handling ${config.SIMULATION_ROUNDS} purchases`);
+    console.log(`${this.name} finished in UNIX time ${new Date().getTime()}`);
     console.timeEnd(this.name);
   }
 }
