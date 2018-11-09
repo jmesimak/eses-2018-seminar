@@ -140,7 +140,27 @@ Another feature supported only by the message queue is verifying that only permi
 Message queue also makes subscriber services more robust since they do not need to expose themselves in the network. This prevents adversaries from attempting to flood the service with bogus requests, and somewhat reduces the complexity of the software. These advantages leave the developers more time to focus on the actual features of the service.
 
 \subsection{Second perspective: performance analysis}
+\subsubsection{Continuous streaming}
+Continuous streaming in an environment where all the publishers and subscribers are online is perhaps the most common use case for an event system. This test tries to simulate such an environment, and yields results that allow us to make some conclusion on the comparison  between publish-subscribe and message queue.
 
+In our first benchmark we can see that when we make no assumptions on the performance of the subscribers, publish-subscribe tends to work quite fast if subscribers can keep up with the workload, whereas message queue delivers slower message handling when there is no logic increasing the amount of messages fetched, even if it could handle more traffic.
+
+The same observations hold for larger amount of data but note that the ratio does not change.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.30]{ContStream24k.png}
+    \caption{24000 messages with 5 millisecond interval, Y-axis is in seconds.}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.30]{ContStream96k.png}
+    \caption{96000 messages with 5 millisecond interval, Y-axis is in seconds.}
+\end{figure}
+
+
+\subsubsection{Failure recovery}
 \section{Discussion}
 
 \section{Conclusions}
