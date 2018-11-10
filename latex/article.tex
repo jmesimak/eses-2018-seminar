@@ -12,6 +12,7 @@
 \usepackage{stfloats}
 \usepackage{enumitem}
 \usepackage{titlesec}
+\usepackage{booktabs}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
@@ -42,7 +43,7 @@ Organizations wishing to scale their systems to support hundreds of millions of 
 \subsection{Asynchronous distributed system}
 In this paper we describe an asynchronous distributed system as a set of interrelated services that each consist from one or more nodes. The services do not communicate directly with each other but use either the publish-subscribe messaging or message queue as an intermediary for communication (Figure 1). Synchronous request-response between services is not considered possible as later on described by the limited fault tolerance. The services however require data from each other to function properly so an intermediary and communication path is required.
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics[scale=0.6]{distsys.png}
     \caption{General distributed system composition with one communication intermediary.}
@@ -67,7 +68,7 @@ There are numerous articles introducing different variants of publish-subscribe 
     \item Synchronization decoupling: Publishers can broadcast a message and forget about it, subscribers are able to receive messages and handle them on their own pace.
 \end{itemize}
 With these definitions we can express the publish-subscribe messaging system with the diagram presented in Figure 2.
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics[scale=0.45]{PubSubTheo.png}
     \caption{Publish-subscribe messaging system.}
@@ -78,7 +79,7 @@ With these definitions we can express the publish-subscribe messaging system wit
 Message queues, like publish-subscribe messaging systems have been implemented in multitudes of ways. For the comparison in this paper we use the point to point model described in \textit{Performance Evaluation and Comparison of Distributed Messaging Using Message Oriented Middleware}. We also assume the message queue to be implemented in a manner that allows the same three dimensions of decoupling as which were previously introduced in the publish-subscribe messaging system, with the limitation that subscriber does not necessarily have to know the message sender but the broadcasting service must know who to send the messages to.
 
 With these definitions we can express the message queue with the diagram presented in Figure 3.
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics[scale=0.45]{MQTheo.png}
     \caption{Message queue}
@@ -124,13 +125,19 @@ We tested the systems by introducing two simulated traffic workloads in two diff
 \end{itemize}
 
 \section{Results}
-\subsection{First perspective: qualitative analysis}
+\subsection{First perspective: qualitative comparison}
+In this section we argue for the benefits of each system that can be derived from the previously presented definitions. A table will also be presented containing the main comparison points.
+
+Qualitative comparison was constructed because we consider that performance is not always the most desirable function of an event system, i.e. certain features might be required by the business, or lower implementation complexity could be desired due to cost reasons REF TO SOFTWARE QUALITY.
+\\
+
 \subsubsection{Publish-subscribe messaging system}
 The core advantage of publish-subscribe messaging system comes from the three dimensions of decoupling. They occur stronger than in message queues, which makes publish-subscribe better suited for loosely coupled systems. Main selling point of the loose coupling is that new services can be added to listen on pre-existing topics, and this does not require any changes in the rest of the system. We have also found this to be extremely beneficial in our advertisement network, where we can trial and launch new features without risking bugs in current production software. 
 
 Publish-subscribe approach also allows to control the flow of outgoing messages so that an increase in subscribers does not necessarily overload the event system. In the distributed system model we proposed, worst outcome would be for the communication intermediary to stop working since that would prevent all subscribers from receiving messages.
 
 Last advantage of publish-subscribe is that if multiple services are subscribed to the same message, we must only store the message content once, whereas message queue requires either duplication of the message, or increased complexity and computational requirements to store only one copy. When the amount of subscribers wishing to read similar messages grows large, message queue would run out of memory faster, thus leading to increased operational costs or higher latencies.
+\\
 
 \subsubsection{Message queue}
 Slightly tighter coupling between publishers and subscribers in message queue approach allows for some functionality that might be desired in some systems. The most obvious is how messages flow from the event system to the subscriber. When subscribers can pull the messages, they control how much they must process at once, and can therefor optimize the rate to something that their underlying hardware can handle optimally.
@@ -138,45 +145,64 @@ Slightly tighter coupling between publishers and subscribers in message queue ap
 Another feature supported only by the message queue is verifying that only permitted listeners are allowed to fetch certain messages from the event system. This can be implemented with cryptographic keys shared between publisher and subscriber since there is a stronger coupling, or by negotiating such complex subscriber names that they can not be guessed by an adversary.
 
 Message queue also makes subscriber services more robust since they do not need to expose themselves in the network. This prevents adversaries from attempting to flood the service with bogus requests, and somewhat reduces the complexity of the software. These advantages leave the developers more time to focus on the actual features of the service.
+\\
 
-\subsection{Second perspective: performance analysis}
+\subsubsection{Feature table}
+\begin{table}[h]
+\begin{tabular}{@{}lll@{}}
+\toprule
+Feature                                                                                                  & Publish-subscribe     & Message queue         \\ \midrule
+Recovery from service failure                                                                            & \multicolumn{1}{c}{•} & \multicolumn{1}{c}{•} \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Adding subscribers without\\ modifications to rest of the system\end{tabular} & \multicolumn{1}{c}{•} &                       \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Allow subscribers to\\ control inbound message flow\end{tabular}              &                       & \multicolumn{1}{c}{•} \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Allow event system to\\ control outgoing message flow\end{tabular}            & \multicolumn{1}{c}{•} &                       \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Store identical messages\\ only once\end{tabular}                             & \multicolumn{1}{c}{•} &                       \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Secure communication\\ between publisher and subscriber\end{tabular}          &                       & \multicolumn{1}{c}{•} \\ \midrule
+Non-exposed subscribers                                                                                  &                       & \multicolumn{1}{c}{•} \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Second perspective: performance comparison}
+In building an advertisement network that delivers content to over a billion devices, performance has been identified as a critical part of the system. Closely tied to general performance are lower latencies that have been observed to increase profits and advance customer satisfaction SOME REFS YO. Therefor having insight into performance differences is essential knowledge when business decisions are being made regarding the choice of an even system.
+The following subsections will present concrete benchmarks and give a brief analysis on each one to better explain the differences.
+
 \subsubsection{Continuous streaming}
 Continuous streaming in an environment where all the publishers and subscribers are online is perhaps the most common use case for an event system. This test tries to simulate such an environment, and yields results that allow us to make some conclusion on the comparison  between publish-subscribe and message queue.
 
-In our first benchmark we can see that when we make no assumptions on the performance of the subscribers, publish-subscribe tends to work quite fast if subscribers can keep up with the workload, whereas message queue delivers slower message handling when there is no logic increasing the amount of messages fetched, even if it could handle more traffic.
+In our first benchmark (Figure 4) we can see that when we make no assumptions on the performance of the subscribers, publish-subscribe tends to work quite fast if subscribers can keep up with the workload, whereas message queue delivers slower message handling when there is no logic increasing the amount of messages fetched, even if it could handle more traffic.
 
-The same observations hold for larger amount of data, which leads to the conclusion that while continuously streaming in a rather simple distributed system, publish-subscribe fares better.
+The same observations hold for larger amount of data (Figure 5), which leads to the conclusion that while continuously streaming in a rather simple distributed system, publish-subscribe fares better.
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics[scale=0.30]{ContStream24k.png}
-    \caption{24000 messages with 5 millisecond interval, Y-axis is in seconds.}
+    \caption{24000 messages with 5 millisecond interval, X-axis is in seconds.}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics[scale=0.30]{ContStream96k.png}
-    \caption{96000 messages with 5 millisecond interval, Y-axis is in seconds.}
+    \caption{96000 messages with 5 millisecond interval, X-axis is in seconds.}
 \end{figure}
 
 
 \subsubsection{Failure recovery}
 Services going offline can happen for a multitude of reasons, such as taking it down for a version update, network outage, power outage, etc. Therefor we felt it necessary to include a benchmark for failure recovery which is something that each system is eventually bound to run into. From the following results we can again identify how each of the two systems work under normally occurring conditions, and better compare the two through our observations.
 
-As the figure shows, message queue subscribers are able to catch up somewhat faster when there are multiple messages pending to be processed, since publish-subscribe messaging system is constrained due to not knowing how much traffic the subscribers could handle. There are possible implementations of publish subscribe that would allow adjusting of the publishing rate, but those fall outside the scope of comparing the approaches on this paper's purpose in delivering a general comparison.
+As the Figure 6 shows, message queue subscribers are able to catch up somewhat faster when there are multiple messages pending to be processed, since publish-subscribe messaging system is constrained due to not knowing how much traffic the subscribers could handle. There are possible implementations of publish subscribe that would allow adjusting of the publishing rate, but those fall outside the scope of comparing the approaches on this paper's purpose in delivering a general comparison.
 
-With larger message set the difference becomes even more pronounced in terms of seconds but the ratio stays roughly the same. For failure recovery scenarios it seems that message queues would fare better especially when no assumptions on the workings of the rest of the system can be made.
+With a larger message set (Figure 7) the difference becomes even more pronounced in terms of seconds but the ratio stays roughly the same. For failure recovery scenarios it seems that message queues would fare better especially when no assumptions on the workings of the rest of the system can be made.
 
 \begin{figure}
     \centering
     \includegraphics[scale=0.30]{ColdBoot24k.png}
-    \caption{24000 messages with 5 millisecond interval, Y-axis is in seconds.}
+    \caption{24000 messages with 5 millisecond interval, X-axis is in seconds.}
 \end{figure}
 
 \begin{figure}
     \centering
     \includegraphics[scale=0.30]{ColdBoot96k.png}
-    \caption{96000 messages with 5 millisecond interval, Y-axis is in seconds.}
+    \caption{96000 messages with 5 millisecond interval, X-axis is in seconds.}
 \end{figure}
 
 \section{Discussion}
