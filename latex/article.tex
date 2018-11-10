@@ -152,19 +152,20 @@ Message queue also makes subscriber services more robust since they do not need 
 \begin{tabular}{@{}lll@{}}
 \toprule
 Feature                                                                                                  & Publish-subscribe     & Message queue         \\ \midrule
-Recovery from service failure                                                                            & \multicolumn{1}{c}{•} & \multicolumn{1}{c}{•} \\ \midrule
-\begin{tabular}[c]{@{}l@{}}Adding subscribers without\\ modifications to rest of the system\end{tabular} & \multicolumn{1}{c}{•} &                       \\ \midrule
-\begin{tabular}[c]{@{}l@{}}Allow subscribers to\\ control inbound message flow\end{tabular}              &                       & \multicolumn{1}{c}{•} \\ \midrule
-\begin{tabular}[c]{@{}l@{}}Allow event system to\\ control outgoing message flow\end{tabular}            & \multicolumn{1}{c}{•} &                       \\ \midrule
-\begin{tabular}[c]{@{}l@{}}Store identical messages\\ only once\end{tabular}                             & \multicolumn{1}{c}{•} &                       \\ \midrule
-\begin{tabular}[c]{@{}l@{}}Secure communication\\ between publisher and subscriber\end{tabular}          &                       & \multicolumn{1}{c}{•} \\ \midrule
-Non-exposed subscribers                                                                                  &                       & \multicolumn{1}{c}{•} \\ \bottomrule
+Recovery from service failure                                                                            & \multicolumn{1}{c}{\textbullet} & \multicolumn{1}{c}{\textbullet} \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Adding subscribers without\\ modifications to rest of the system\end{tabular} & \multicolumn{1}{c}{\textbullet} &                       \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Allow subscribers to\\ control inbound message flow\end{tabular}              &                       & \multicolumn{1}{c}{\textbullet} \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Allow event system to\\ control outgoing message flow\end{tabular}            & \multicolumn{1}{c}{\textbullet} &                       \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Store identical messages\\ only once\end{tabular}                             & \multicolumn{1}{c}{\textbullet} &                       \\ \midrule
+\begin{tabular}[c]{@{}l@{}}Secure communication\\ between publisher and subscriber\end{tabular}          &                       & \multicolumn{1}{c}{\textbullet} \\ \midrule
+Non-exposed subscribers                                                                                  &                       & \multicolumn{1}{c}{\textbullet} \\ \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Second perspective: performance comparison}
 In building an advertisement network that delivers content to over a billion devices, performance has been identified as a critical part of the system. Closely tied to general performance are lower latencies that have been observed to increase profits and advance customer satisfaction SOME REFS YO. Therefor having insight into performance differences is essential knowledge when business decisions are being made regarding the choice of an even system.
 The following subsections will present concrete benchmarks and give a brief analysis on each one to better explain the differences.
+\\
 
 \subsubsection{Continuous streaming}
 Continuous streaming in an environment where all the publishers and subscribers are online is perhaps the most common use case for an event system. This test tries to simulate such an environment, and yields results that allow us to make some conclusion on the comparison  between publish-subscribe and message queue.
@@ -184,7 +185,6 @@ The same observations hold for larger amount of data (Figure 5), which leads to 
     \includegraphics[scale=0.30]{ContStream96k.png}
     \caption{96000 messages with 5 millisecond interval, X-axis is in seconds.}
 \end{figure}
-
 
 \subsubsection{Failure recovery}
 Services going offline can happen for a multitude of reasons, such as taking it down for a version update, network outage, power outage, etc. Therefor we felt it necessary to include a benchmark for failure recovery which is something that each system is eventually bound to run into. From the following results we can again identify how each of the two systems work under normally occurring conditions, and better compare the two through our observations.
